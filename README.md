@@ -9,3 +9,5 @@
                     .play(null, true);
     }, 5000);
 ```
+
+[DEMO](http://eatsjobs.github.io/canvas-player/example/)
