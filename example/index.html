@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CanvasPlayer example</title>
+        
+        <script src="canvas-player.js"></script>
+        
+    </head>
+    <body>
+        
+        <canvas></canvas>
+        
+        <script src="circles.js"></script>
+        <script>            
+            animate();
+            // example
+            var canvasPlayer = new CanvasPlayer();
+            canvasPlayer.record();
+            
+            setTimeout(function(){
+                canvasPlayer.stopRecord()
+                            .play(null, true);
+            }, 5000);
+            
+        </script>        
+    </body>
+</html>
