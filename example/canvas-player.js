@@ -84,7 +84,8 @@ CanvasPlayer.prototype.stopRecord = function(){
         this.intervalID = null;
         console.log("Stop recording...");
         return this;    
-    }    
+    }
+    return this; 
 }
 
 /**
@@ -118,7 +119,7 @@ CanvasPlayer.prototype.play = function(targetCanvas, loop){
         /**
          *  TODO: calculate and consider the device pixel ratio and the orientation and the scale!!
          */                
-        targetCanvas.setAttribute("style", "position:absolute;bottom:10px;left:0;");
+        targetCanvas.setAttribute("style", "position:absolute;bottom:10px;left:0;width:30%;");
         targetCanvas.width = self.canvasElement.width;
         targetCanvas.height = self.canvasElement.height;
         targetCanvas.setAttribute("id", "playCanvas");
@@ -130,14 +131,16 @@ CanvasPlayer.prototype.play = function(targetCanvas, loop){
     var targetCtx = targetCanvas.getContext("2d");
     var it = Iterator(self.frames);
     if(!self.recording && self.frames.length > 0){
-        self.playing = true;
+
         
-        self.image.addEventListener("load", function() {
-           targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-           targetCtx.drawImage(self.image, 0, 0, targetCanvas.width, targetCanvas.height);           
-        });
+        function paint(){
+            self.playing = true;
         
-        self.playIntervalID = setInterval(function(){             
+            self.image.addEventListener("load", function() {
+                targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+                targetCtx.drawImage(self.image, 0, 0, targetCanvas.width, targetCanvas.height);           
+            }); 
+                        
             var _next = it.next();
             if(_next.value){
                 self.image.setAttribute("src", _next.value);
@@ -145,7 +148,19 @@ CanvasPlayer.prototype.play = function(targetCanvas, loop){
                 self.image.setAttribute("src", it.next(true).value);
             }            
             
-        }, 1000 / self.options.fps);
+        }
+        
+        requestAnimationFrame(paint);
+        
+        /*self.playIntervalID = setInterval(function(){             
+            var _next = it.next();
+            if(_next.value){
+                self.image.setAttribute("src", _next.value);
+            } else if(_next.done && loop) {
+                self.image.setAttribute("src", it.next(true).value);
+            }            
+            
+        }, 1000 / self.options.fps);*/
     }
 }
 
