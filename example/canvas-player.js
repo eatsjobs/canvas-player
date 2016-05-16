@@ -13,7 +13,7 @@ var Iterator = require("./lib").Iterator;
 var defaultOptions = {
     canvasElement:null,
     fps:29.97,
-    quality:1.0,
+    quality:0.5,
     format:"png"   
 };
 
@@ -127,19 +127,8 @@ CanvasPlayer.prototype.play = function(targetCanvas, loop){
     }
     
     if(!self.recording && self.frames.length > 0){
-       
-
-        /** self.playIntervalID = setInterval(function(){             
-            var _next = it.next();
-            if(_next.value){
-                self.image.setAttribute("src", _next.value);
-            } else if(_next.done && loop) {
-                self.image.setAttribute("src", it.next(true).value);
-            }
-            
-        }, 1000 / self.options.fps);**/
-        
-        requestAnimationFrame(self.play.bind(self, targetCanvas, loop));
+               
+        this.myRequestAnimationID = requestAnimationFrame(self.play.bind(self, targetCanvas, loop));
         this.now = Date.now();
         this.delta = this.now - this.then;
             
@@ -193,10 +182,10 @@ CanvasPlayer.prototype.__buildTargetCanvas__ = function(){
  * stopPlay. stopplay if it's playing
  */
 CanvasPlayer.prototype.stopPlay = function(){
-    if(this.playing && this.playIntervalID){
-        clearInterval(this.playIntervalID);
+    if(this.playing && this.myRequestAnimationID){
+        cancelAnimationFrame(this.myRequestAnimationID);
         this.playing = false;
-        this.playIntervalID = null;
+        this.myRequestAnimationID = null;
     }
 }
 
