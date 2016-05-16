@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>CanvasPlayer example</title>
-        
+        <script src="animation-frame-polyfill.js"></script>
         <script src="canvas-player.js"></script>
         
     </head>
@@ -14,7 +14,7 @@
         <script>            
             animate();
             // example
-            var canvasPlayer = new CanvasPlayer();
+            var canvasPlayer = new CanvasPlayer({fps:29.97});
             canvasPlayer.record();
             
             setTimeout(function(){

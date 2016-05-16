@@ -62,28 +62,24 @@ Circle.prototype.move = function() {
 circles.push(new Circle(ctx, option1));
 circles.push(new Circle(ctx, option2));
 circles.push(new Circle(ctx, option3));
-console.log(circles);
+
 function draw(){  
-  ctx.clearRect(0, 0, 800, 400);
-  
-    for (var i = 0; i < circles.length; i++){
-      circles[i].move();
-      circles[i].render();
-  
-    }
-  
+  ctx.clearRect(0, 0, 800, 400);  
+  circles.forEach(function(circle){ circle.move();circle.render(); });  
 }
+
+//polyfill
+var reqAnimFrame = window.mozRequestAnimationFrame ||
+            window.webkitRequestAnimationFrame ||
+            window.msRequestAnimationFrame ||
+            window.oRequestAnimationFrame || 
+            window.requestAnimationFrame ||  
+            function(callback){
+                window.setTimeout(callback, 1000 / 60);
+            };
 
 function animate() {
 
-    var reqAnimFrame = window.mozRequestAnimationFrame ||
-                window.webkitRequestAnimationFrame ||
-                window.msRequestAnimationFrame ||
-                window.oRequestAnimationFrame || 
-                window.requestAnimationFrame ||  
-                function(callback){
-                    window.setTimeout(callback, 1000 / 60);
-                };
     reqAnimFrame(animate);
     draw();
 }
