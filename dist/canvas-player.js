@@ -12,8 +12,8 @@ var Iterator = require("./lib").Iterator;
  */
 var defaultOptions = {
     canvasElement:null,
-    fps:24,
-    quality:1.0,
+    fps:29.97,
+    quality:0.5,
     format:"png"   
 };
 
@@ -43,6 +43,11 @@ function CanvasPlayer(options){
   this.image = new Image();
   this.recording = false;
   this.playing = false;
+  
+  this.now;
+  this.then = Date.now();
+  this.interval = 1000 / this.options.fps;
+  this.delta;
 }
 
 /**
@@ -82,9 +87,11 @@ CanvasPlayer.prototype.stopRecord = function(){
         clearInterval(this.intervalID);
         this.recording = false;
         this.intervalID = null;
+        this.imagesIterator = Iterator(this.frames);
         console.log("Stop recording...");
         return this;    
-    }    
+    }
+    return this; 
 }
 
 /**
@@ -108,55 +115,77 @@ CanvasPlayer.prototype.clearBuffer = function(){
 /**
  * play. if not a target canvas is specified it will create a new one canvas
  * where to play the images
- * @param {HTMLCanvasElement} target - target canvas
+ * @param {HTMLCanvasElement} [target=HTMLCanvasElement] - target canvas
  */
 CanvasPlayer.prototype.play = function(targetCanvas, loop){
     var self = this;
     
     if(!targetCanvas && !document.getElementById("playCanvas")){
-        targetCanvas = document.createElement("canvas");
-        /**
-         *  TODO: calculate and consider the device pixel ratio and the orientation and the scale!!
-         */                
-        targetCanvas.setAttribute("style", "position:absolute;bottom:10px;left:0;");
-        targetCanvas.width = self.canvasElement.width;
-        targetCanvas.height = self.canvasElement.height;
-        targetCanvas.setAttribute("id", "playCanvas");
-        document.body.appendChild(targetCanvas);
-    } else {
-        targetCanvas = document.getElementById("playCanvas");
+        this.targetCanvas = this.__buildTargetCanvas__();
+        this.targetCtx = this.targetCanvas.getContext("2d");
+        document.body.appendChild(this.targetCanvas);
     }
     
-    var targetCtx = targetCanvas.getContext("2d");
-    var it = Iterator(self.frames);
     if(!self.recording && self.frames.length > 0){
-        self.playing = true;
-        
-        self.image.addEventListener("load", function() {
-           targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-           targetCtx.drawImage(self.image, 0, 0, targetCanvas.width, targetCanvas.height);           
-        });
-        
-        self.playIntervalID = setInterval(function(){             
-            var _next = it.next();
+               
+        this.myRequestAnimationID = requestAnimationFrame(self.play.bind(self, targetCanvas, loop));
+        this.now = Date.now();
+        this.delta = this.now - this.then;
+            
+        if (this.delta > this.interval) {
+            // update time stuffs
+                
+            // Just `then = now` is not enough.
+            // Lets say we set fps at 10 which means
+            // each frame must take 100ms
+            // Now frame executes in 16ms (60fps) so
+            // the loop iterates 7 times (16*7 = 112ms) until
+            // delta > interval === true
+            // Eventually this lowers down the FPS as
+            // 112*10 = 1120ms (NOT 1000ms).
+            // So we have to get rid of that extra 12ms
+            // by subtracting delta (112) % interval (100).
+            // Hope that makes sense.
+                
+            this.then = this.now - (this.delta % this.interval);
+                
+            self.playing = true;
+            self.image.addEventListener("load", self._render.bind(self)); 
+
+            var _next = this.imagesIterator.next();
             if(_next.value){
                 self.image.setAttribute("src", _next.value);
             } else if(_next.done && loop) {
-                self.image.setAttribute("src", it.next(true).value);
-            }            
-            
-        }, 1000 / self.options.fps);
+                self.image.setAttribute("src", this.imagesIterator.next(true).value);
+            }
+        }        
+        
     }
+}
+
+CanvasPlayer.prototype._render = function(){
+     var self = this;
+     self.targetCtx.clearRect(0, 0, self.targetCanvas.width, self.targetCanvas.height);
+     self.targetCtx.drawImage(self.image, 0, 0, self.targetCanvas.width, self.targetCanvas.height);
+}
+
+CanvasPlayer.prototype.__buildTargetCanvas__ = function(){
+    var canvas = document.createElement("canvas");
+    canvas.setAttribute("style", "position:absolute;bottom:10px;left:5px;");
+    canvas.setAttribute("id", "playCanvas");
+    canvas.setAttribute("width", this.canvasElement.width);
+    canvas.setAttribute("height", this.canvasElement.height);    
+    return canvas;
 }
 
 /**
  * stopPlay. stopplay if it's playing
  */
 CanvasPlayer.prototype.stopPlay = function(){
-    if(this.playing && this.playIntervalID){
-        clearInterval(this.playIntervalID);
+    if(this.playing && this.myRequestAnimationID){
+        cancelAnimationFrame(this.myRequestAnimationID);
         this.playing = false;
-        this.playIntervalID = null;
+        this.myRequestAnimationID = null;
     }
 }
 
