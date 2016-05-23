@@ -68,18 +68,14 @@ function draw(){
   circles.forEach(function(circle){ circle.move();circle.render(); });  
 }
 
-//polyfill
-var reqAnimFrame = window.mozRequestAnimationFrame ||
-            window.webkitRequestAnimationFrame ||
-            window.msRequestAnimationFrame ||
-            window.oRequestAnimationFrame || 
-            window.requestAnimationFrame ||  
-            function(callback){
-                window.setTimeout(callback, 1000 / 60);
-            };
 
+var animID;
 function animate() {
 
-    reqAnimFrame(animate);
+    animID = window.requestAnimationFrame(animate);
     draw();
+}
+
+function stop(){
+  window.cancelAnimationFrame(animID);
 }

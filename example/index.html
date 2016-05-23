@@ -8,18 +8,24 @@
     </head>
     <body>
         
-        <canvas></canvas>
+        <canvas id="toRecord"></canvas>
         
         <script src="circles.js"></script>
         <script>            
             animate();
             // example
-            var canvasPlayer = new CanvasPlayer({fps:29.97});
+            var canvasPlayer = new CanvasPlayer({
+                fps:24,
+                canvasElement:document.getElementById("toRecord"),
+                quality:0.2,
+                format:"png"
+            });
             canvasPlayer.record();
             
             setTimeout(function(){
                 canvasPlayer.stopRecord()
-                            .play(null, true);
+                            .play(null, true);                            
+                            
             }, 5000);
             
         </script>        

@@ -12,9 +12,9 @@ var Iterator = require("./lib").Iterator;
  */
 var defaultOptions = {
     canvasElement:null,
-    fps:29.97,
+    fps:24,
     quality:0.5,
-    format:"png"   
+    format:"jpg"   
 };
 
 var FORMAT = {
@@ -36,11 +36,12 @@ function CanvasPlayer(options){
   
   this.options = extend(defaultOptions, options || {});
   this.canvasElement = this.options.canvasElement || document.querySelectorAll("canvas")[0];
-  this.ctx = this.canvasElement.getContext("2d");  
+  this.ctx = this.canvasElement.getContext("webgl");  
   this.frames = [];  
   this.intervalID = null;
   this.playIntervalID = null;
   this.image = new Image();
+  this.image.onload = this._render.bind(this);
   this.recording = false;
   this.playing = false;
   
@@ -58,13 +59,13 @@ function CanvasPlayer(options){
  * @returns {Array} an array of base64 encode images
  */
 CanvasPlayer.prototype.record = function(){
-    console.log(["Start recording ", "FPS:" + this.options.fps, "quality:" + this.options.quality, "format:" + this.options.format].join(", "));
+    //console.log(["Start recording ", "FPS:" + this.options.fps, "quality:" + this.options.quality, "format:" + this.options.format].join(", "));
+    
     this.recording = true;
-    var self = this;
-    this.intervalID = setInterval(function(){
-        var dataURL = self.canvasElement.toDataURL(FORMAT[self.options.format.toLowerCase()], self.options.quality);
-        self.frames.push(dataURL);    
-    }, 1000 / self.options.fps);
+        
+    this.intervalID = window.requestAnimationFrame(this.record.bind(this));
+    
+    this._take_();
     
     /*var imagedata = this.ctx.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
   
@@ -81,10 +82,19 @@ CanvasPlayer.prototype.record = function(){
     return this;
 }
 
+CanvasPlayer.prototype._take_ = function(){
+    var self = this;    
+    self.frames.push(self.canvasElement.toDataURL(FORMAT[self.options.format.toLowerCase()], self.options.quality));
+    /*self.intervalID = window.requestAnimationFrame(function(){
+          
+    }, 1000 / self.options.fps);*/   
+}
+
 
 CanvasPlayer.prototype.stopRecord = function(){
     if(this.recording && this.intervalID){
         clearInterval(this.intervalID);
+        window.cancelAnimationFrame(this.intervalID);
         this.recording = false;
         this.intervalID = null;
         this.imagesIterator = Iterator(this.frames);
@@ -129,10 +139,11 @@ CanvasPlayer.prototype.play = function(targetCanvas, loop){
     if(!self.recording && self.frames.length > 0){
                
         this.myRequestAnimationID = requestAnimationFrame(self.play.bind(self, targetCanvas, loop));
+        self.playing = true;
         this.now = Date.now();
         this.delta = this.now - this.then;
             
-        if (this.delta > this.interval) {
+        //if (this.delta > this.interval) {
             // update time stuffs
                 
             // Just `then = now` is not enough.
@@ -147,26 +158,21 @@ CanvasPlayer.prototype.play = function(targetCanvas, loop){
             // by subtracting delta (112) % interval (100).
             // Hope that makes sense.
                 
-            this.then = this.now - (this.delta % this.interval);
-                
-            self.playing = true;
-            self.image.addEventListener("load", self._render.bind(self)); 
-
+            this.then = this.now - (this.delta % this.interval);      
             var _next = this.imagesIterator.next();
             if(_next.value){
                 self.image.setAttribute("src", _next.value);
             } else if(_next.done && loop) {
                 self.image.setAttribute("src", this.imagesIterator.next(true).value);
             }
-        }        
+        //}        
         
     }
 }
 
 CanvasPlayer.prototype._render = function(){
-     var self = this;
-     self.targetCtx.clearRect(0, 0, self.targetCanvas.width, self.targetCanvas.height);
-     self.targetCtx.drawImage(self.image, 0, 0, self.targetCanvas.width, self.targetCanvas.height);
+     this.targetCtx.clearRect(0, 0, this.targetCanvas.width, this.targetCanvas.height);
+     this.targetCtx.drawImage(this.image, 0, 0, this.targetCanvas.width, this.targetCanvas.height);
 }
 
 CanvasPlayer.prototype.__buildTargetCanvas__ = function(){
