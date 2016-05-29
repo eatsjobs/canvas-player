@@ -4,29 +4,49 @@
         <title>CanvasPlayer example</title>
         <script src="animation-frame-polyfill.js"></script>
         <script src="canvas-player.js"></script>
+        <style>
+            .border5px{
+                border-style: solid;
+                border-width: 5px;    
+            }
+            
+            .recording {
+                border-color:red;
+            }
+        </style>
         
     </head>
     <body>
         
-        <canvas id="toRecord"></canvas>
+        <p>keep pressed on canvas to record. on release it stops recording and play</p>
+        <canvas id="toRecord" class="border5px" width="800" height="400"></canvas>
+        <canvas id="playCanvas" class="border5px" width="800" height="400"></canvas>
         
         <script src="circles.js"></script>
         <script>            
             animate();
+            
+            var toRecordCanvasElement = document.getElementById("toRecord");
+            
             // example
             var canvasPlayer = new CanvasPlayer({
-                fps:24,
-                canvasElement:document.getElementById("toRecord"),
-                quality:0.2,
-                format:"png"
+                fps:30,
+                canvasElement:"#toRecord",
+                quality:0.1,
+                format:"jpg"
             });
-            canvasPlayer.record();
             
-            setTimeout(function(){
+            toRecordCanvasElement.addEventListener("mousedown", function(e){
+                canvasPlayer.clearBuffer();       
+                canvasPlayer.record();
+                toRecordCanvasElement.classList.add("recording");
+            });
+            
+            toRecordCanvasElement.addEventListener("mouseup", function(e){
+                toRecordCanvasElement.classList.remove("recording");                
                 canvasPlayer.stopRecord()
-                            .play(null, true);                            
-                            
-            }, 5000);
+                            .play("#playCanvas", false);
+            });
             
         </script>        
     </body>

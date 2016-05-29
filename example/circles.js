@@ -7,7 +7,7 @@ var baseCircleOptions = {
   y:100,
       radius:10,
       color:'green',
-      step:5
+      step:10
 }
 
 var Options = function(options){
@@ -24,6 +24,7 @@ Options.prototype.extend = function(objectToMerge){
 var option1 = new Options(baseCircleOptions).extend({step:1, color:'red'});
 var option2 = new Options(baseCircleOptions).extend({step:5, color:'green'});
 var option3 = new Options(baseCircleOptions).extend({step:3, color:'yellow'});
+var option4 = new Options(baseCircleOptions).extend({step:8, color:'pink'});
 
 function Circle(ctx, defaults) {
   this.ctx = ctx;
@@ -62,6 +63,7 @@ Circle.prototype.move = function() {
 circles.push(new Circle(ctx, option1));
 circles.push(new Circle(ctx, option2));
 circles.push(new Circle(ctx, option3));
+circles.push(new Circle(ctx, option4));
 
 function draw(){  
   ctx.clearRect(0, 0, 800, 400);  
