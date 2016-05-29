@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "docs": "jsdoc -R README.md -d dist/docs",
-    "build": "browserify index.js -o dist/canvas-player.js -s CanvasPlayer && cp dist/canvas-player.js canvas-player.js",
+    "build": "browserify index.js -o dist/canvas-player.js -s CanvasPlayer",
     "test": "karma start --no-auto-watch --browsers PhantomJS,Chrome,Firefox --single-run",
     "test:develop":"karma start --browsers Chrome,Firefox"
   },
