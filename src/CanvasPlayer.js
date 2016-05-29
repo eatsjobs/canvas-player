@@ -30,16 +30,18 @@ var FORMAT = {
 function CanvasPlayer(options){
   
   this.options = extend(defaultOptions, options || {});
-  this.canvasElement = this.options.canvasElement || document.querySelectorAll("canvas")[0];
-  this.ctx = this.canvasElement.getContext("webgl");  
-  this.frames = [];  
-  this.intervalID = null;
-  this.playIntervalID = null;
+  this.canvasElement = document.querySelector(this.options.canvasElement);
+  this.ctx = this.canvasElement.getContext("2d");
+  this.frames = [];
+  this.recordIntervalID = null;
+  this.playrecordIntervalID = null;
   this.image = new Image();
   this.image.onload = this._render.bind(this);
   this.recording = false;
   this.playing = false;
   
+  this.loopPlay = false;
+  this.options.format = FORMAT[this.options.format.toLowerCase()];  
   this.now;
   this.then = Date.now();
   this.interval = 1000 / this.options.fps;
@@ -54,49 +56,36 @@ function CanvasPlayer(options){
  * @returns {Array} an array of base64 encode images
  */
 CanvasPlayer.prototype.record = function(){
-    //console.log(["Start recording ", "FPS:" + this.options.fps, "quality:" + this.options.quality, "format:" + this.options.format].join(", "));
+    console.log(["Start recording ", "FPS:" + this.options.fps, "quality:" + this.options.quality, "format:" + this.options.format].join(", "));
     
     this.recording = true;
-        
-    this.intervalID = window.requestAnimationFrame(this.record.bind(this));
-    
-    this._take_();
-    
-    /*var imagedata = this.ctx.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
-  
-    var canvaspixelarray = imagedata.data;    
-    var canvaspixellen = canvaspixelarray.length;
-    
-  
-    /*var bytearray = new Uint8Array(canvaspixellen);
+    this._recordLoop();        
 
-    for (var i=0;i<canvaspixellen;++i) {
-        bytearray[i] = canvaspixelarray[i];
-    }
-    return bytearray.buffer;*/
     return this;
 }
 
-CanvasPlayer.prototype._take_ = function(){
-    var self = this;    
-    self.frames.push(self.canvasElement.toDataURL(FORMAT[self.options.format.toLowerCase()], self.options.quality));
-    /*self.intervalID = window.requestAnimationFrame(function(){
-          
-    }, 1000 / self.options.fps);*/   
+CanvasPlayer.prototype._recordLoop = function(){
+    this.recordIntervalID = window.requestAnimationFrame(this._recordLoop.bind(this));    
+    
+    this.now = Date.now();
+    this.delta = this.now - this.then;
+                
+    if (this.delta > this.interval) {        
+        this.frames.push(this.canvasElement.toDataURL(this.options.format, this.options.quality));  
+        this.then = this.now - (this.delta % this.interval);
+    }
 }
 
-
 CanvasPlayer.prototype.stopRecord = function(){
-    if(this.recording && this.intervalID){
-        clearInterval(this.intervalID);
-        window.cancelAnimationFrame(this.intervalID);
+    if(this.recording && this.recordIntervalID){
+        window.cancelAnimationFrame(this.recordIntervalID);
         this.recording = false;
-        this.intervalID = null;
+        this.recordIntervalID = null;
         this.imagesIterator = Iterator(this.frames);
         console.log("Stop recording...");
-        return this;    
+        return this;
     }
-    return this; 
+    return this;
 }
 
 /**
@@ -120,27 +109,40 @@ CanvasPlayer.prototype.clearBuffer = function(){
 /**
  * play. if not a target canvas is specified it will create a new one canvas
  * where to play the images
- * @param {HTMLCanvasElement} [target=HTMLCanvasElement] - target canvas
+ * @param {String} targetCanvasSelector - target canvas
  */
-CanvasPlayer.prototype.play = function(targetCanvas, loop){
+CanvasPlayer.prototype.play = function(targetCanvasSelector, loop){
     var self = this;
+    this.loopPlay = loop;
     
-    if(!targetCanvas && !document.getElementById("playCanvas")){
-        this.targetCanvas = this.__buildTargetCanvas__();
-        this.targetCtx = this.targetCanvas.getContext("2d");
+    this.targetCanvas = document.querySelector(targetCanvasSelector);
+    if(!this.targetCanvas){
+        this.targetCanvas = this.__buildTargetCanvas__();        
         document.body.appendChild(this.targetCanvas);
-    }
+    } 
     
-    if(!self.recording && self.frames.length > 0){
+    this.targetCtx = this.targetCanvas.getContext("2d");
+    this.playing = true;
+    this._playLoop();
+}
+
+CanvasPlayer.prototype._playLoop = function(){
+    if(!this.recording && this.frames.length > 0){
                
-        this.myRequestAnimationID = requestAnimationFrame(self.play.bind(self, targetCanvas, loop));
-        self.playing = true;
+        this.myRequestAnimationID = window.requestAnimationFrame(this._playLoop.bind(this));
+        
         this.now = Date.now();
         this.delta = this.now - this.then;
             
-        //if (this.delta > this.interval) {
+        if (this.delta > this.interval) {
             // update time stuffs
-                
+            
+            var _next = this.imagesIterator.next();
+            if(_next.value){
+                this.image.setAttribute("src", _next.value);
+            } else if(_next.done && this.loopPlay) {
+                this.image.setAttribute("src", this.imagesIterator.next(true).value);
+            }
             // Just `then = now` is not enough.
             // Lets say we set fps at 10 which means
             // each frame must take 100ms
@@ -152,16 +154,8 @@ CanvasPlayer.prototype.play = function(targetCanvas, loop){
             // So we have to get rid of that extra 12ms
             // by subtracting delta (112) % interval (100).
             // Hope that makes sense.
-                
-            this.then = this.now - (this.delta % this.interval);      
-            var _next = this.imagesIterator.next();
-            if(_next.value){
-                self.image.setAttribute("src", _next.value);
-            } else if(_next.done && loop) {
-                self.image.setAttribute("src", this.imagesIterator.next(true).value);
-            }
-        //}        
-        
+            this.then = this.now - (this.delta % this.interval);
+        }        
     }
 }
 
@@ -184,10 +178,14 @@ CanvasPlayer.prototype.__buildTargetCanvas__ = function(){
  */
 CanvasPlayer.prototype.stopPlay = function(){
     if(this.playing && this.myRequestAnimationID){
-        cancelAnimationFrame(this.myRequestAnimationID);
+        window.cancelAnimationFrame(this.myRequestAnimationID);
         this.playing = false;
         this.myRequestAnimationID = null;
     }
 }
 
+CanvasPlayer.prototype.setFps = function(fps){
+    this.options.fps = fps;
+    this.interval = 1000 / this.options.fps;
+}
 module.exports = CanvasPlayer;
