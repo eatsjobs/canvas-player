@@ -13,27 +13,97 @@
             .recording {
                 border-color:red;
             }
+            
+            .container {
+                margin-bottom: 30px;    
+            }
+            
+            .center {
+                text-align: center;
+                margin-left:auto;
+                margin-right:auto;
+            }
+            
+            legend {
+                padding: 0;
+                display: table;
+            }
+            fieldset {
+                border: 0;
+                padding: 0.01em 0 0 0;
+                margin: 0;
+                min-width: 0;
+            }
+            
+            body:not(:-moz-handler-blocked) fieldset {
+                display: table-cell;
+            }
         </style>
-        
+        <title> Canvas Player </title>
     </head>
     <body>
+        <h1 class="center">CanvasPlayer</h1>
+        <div class="container center">
+            <p>Keep pressed on canvas to record. on release it stops recording and play</p>
+            <canvas id="toRecord" class="border5px" width="800" height="400"></canvas>
+            
+            <fieldset>
+                <legend>Record Options:</legend>
+                PNG <input type="radio" value="png" name="format" checked="checked" />
+                JPG <input type="radio" value="jpeg"  name="format" />                
+                QUALITY:<input type="range" id="quality" name="quality" max="1.0" step="0.1" />
+            </fieldset>
+        </div>   
         
-        <p>keep pressed on canvas to record. on release it stops recording and play</p>
-        <canvas id="toRecord" class="border5px" width="800" height="400"></canvas>
-        <canvas id="playCanvas" class="border5px" width="800" height="400"></canvas>
+        <div class="container center">
+            <canvas id="playCanvas" class="border5px" width="800" height="400"></canvas>
+            
+            <br />
+            <fieldset>
+                <legend>Play Options</legend>
+                <label>FPS:<input id="fps" type="range" max="60" /></label>
+                <label><input type="checkbox" id="loop" value="">Loop?</label>    
+            </fieldset>                        
+        </div>        
         
         <script src="circles.js"></script>
-        <script>            
+        <script>
             animate();
-            
-            var toRecordCanvasElement = document.getElementById("toRecord");
             
             // example
             var canvasPlayer = new CanvasPlayer({
                 fps:30,
                 canvasElement:"#toRecord",
                 quality:0.1,
-                format:"jpg"
+                format:"png"
+            });
+            
+            var fpsInput = document.querySelector("input#fps");
+            var loopCheckBox = document.querySelector("input#loop");            
+            var toRecordCanvasElement = document.getElementById("toRecord");            
+            var formatRadios = document.querySelectorAll("input[name=format]");
+            var qualityRange = document.querySelectorAll("input[name=quality]")[0];
+            formatRadios = [].slice.call(formatRadios);
+            
+            function handleRadios(e){
+                canvasPlayer.options.format = "image/" + e.target.value;
+            }            
+            
+            formatRadios.map(function(radio){
+                radio.addEventListener("click", handleRadios, false);
+            });
+            
+            qualityRange.addEventListener("change", function(e){
+                canvasPlayer.options.quality = e.target.valueAsNumber;
+            },false);
+            
+            fpsInput.addEventListener("change", function(e){
+               console.log("setFps ", e.target.valueAsNumber);
+               canvasPlayer.setFps(e.target.valueAsNumber);
+            });            
+            
+            loopCheckBox.addEventListener("change", function(e){
+                canvasPlayer.loopPlay = e.target.checked;
             });
             
             toRecordCanvasElement.addEventListener("mousedown", function(e){
@@ -45,7 +115,7 @@
             toRecordCanvasElement.addEventListener("mouseup", function(e){
                 toRecordCanvasElement.classList.remove("recording");                
                 canvasPlayer.stopRecord()
-                            .play("#playCanvas", false);
+                            .play("#playCanvas", loopCheckBox.checked);
             });
             
         </script>        
